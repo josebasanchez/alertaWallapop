@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Crear alerta de producto</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
+  label { display: block; margin: 10px 0 5px; }
+  input[type=text], input[type=number] { width: 100%; padding: 8px; }
+  button { margin-top: 15px; padding: 10px 15px; font-size: 1rem; }
+  #mensaje { margin-top: 15px; }
+</style>
+</head>
+<body>
+
+<h1>Crear alerta para productos</h1>
+
+<form id="alertaForm">
+  <label for="palabraClave">Palabra clave</label>
+  <input type="text" id="palabraClave" name="palabraClave" required />
+
+  <label for="precioMaximo">Precio máximo (€)</label>
+  <input type="number" id="precioMaximo" name="precioMaximo" min="0" step="0.01" required />
+
+  <label><input type="checkbox" id="tienda" name="tienda" /> Solo tienda</label>
+  <label><input type="checkbox" id="perfilTop" name="perfilTop" /> Solo perfil top</label>
+
+  <button type="submit">Crear alerta</button>
+</form>
+
+<div id="mensaje"></div>
+
+<script>
+  const supabaseUrl = 'https://elefzkplhnhyicwbpcno.supabase.co'; // pon aquí tu URL
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsZWZ6a3BsaG5oeWljd2JwY25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1ODA2MTcsImV4cCI6MjA3MDE1NjYxN30.cYh7Cf4qmjkIcZtVC9tdi-NZSFG9tQy6bvvCW8TMIkk'; // pon aquí tu anon key
+  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+  const form = document.getElementById('alertaForm');
+  const mensajeDiv = document.getElementById('mensaje');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const palabra_clave = document.getElementById('palabraClave').value.trim();
+    const precio_maximo = parseFloat(document.getElementById('precioMaximo').value);
+    const tienda = document.getElementById('tienda').checked;
+    const perfil_top = document.getElementById('perfilTop').checked;
+
+    if (!palabra_clave) {
+      mensajeDiv.textContent = 'Por favor, introduce una palabra clave.';
+      return;
+    }
+
+    if (isNaN(precio_maximo) || precio_maximo < 0) {
+      mensajeDiv.textContent = 'Introduce un precio máximo válido.';
+      return;
+    }
+
+    // Aquí pondríamos el id del usuario, para demo ponemos uno fijo
+    const usuario_id = '00000000-0000-0000-0000-000000000000';
+
+    const { data, error } = await supabase
+      .from('filtros')
+      .insert([{
+        usuario_id,
+        nombre: `Alerta: ${palabra_clave}`,
+        palabra_clave,
+        precio_maximo,
+        tienda,
+        perfil_top,
+      }]);
+
+    if (error) {
+      mensajeDiv.textContent = 'Error al crear la alerta: ' + error.message;
+    } else {
+      mensajeDiv.textContent = 'Alerta creada con éxito!';
+      form.reset();
+    }
+  });
+</script>
+
+</body>
+</html>
