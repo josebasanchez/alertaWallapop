@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Crear alerta de producto</title>
+<title>Gestor de alertas de productos</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <style>
   body { font-family: Arial, sans-serif; max-width: 600px; margin: 20px auto; }
@@ -11,6 +11,10 @@
   input[type=text], input[type=number] { width: 100%; padding: 8px; }
   button { margin-top: 15px; padding: 10px 15px; font-size: 1rem; }
   #mensaje { margin-top: 15px; }
+  #listaAlertas { margin-top: 30px; }
+  .alertaItem { border-bottom: 1px solid #ccc; padding: 8px 0; }
+  .error { color: red; }
+  .success { color: green; }
 </style>
 </head>
 <body>
@@ -32,16 +36,55 @@
 
 <div id="mensaje"></div>
 
+<h2>Alertas creadas</h2>
+<div id="listaAlertas">Cargando...</div>
+
 <script>
-  const supabaseUrl = 'https://elefzkplhnhyicwbpcno.supabase.co'; // pon aquí tu URL
-  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsZWZ6a3BsaG5oeWljd2JwY25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1ODA2MTcsImV4cCI6MjA3MDE1NjYxN30.cYh7Cf4qmjkIcZtVC9tdi-NZSFG9tQy6bvvCW8TMIkk'; // pon aquí tu anon key
+  // Configura aquí tu URL y anon key de Supabase
+  const supabaseUrl = 'https://elefzkplhnhyicwbpcno.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVsZWZ6a3BsaG5oeWljd2JwY25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1ODA2MTcsImV4cCI6MjA3MDE1NjYxN30.cYh7Cf4qmjkIcZtVC9tdi-NZSFG9tQy6bvvCW8TMIkk';
   const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
   const form = document.getElementById('alertaForm');
   const mensajeDiv = document.getElementById('mensaje');
+  const listaDiv = document.getElementById('listaAlertas');
+
+  // Usuario fijo para demo
+  const usuario_id = '00000000-0000-0000-0000-000000000000';
+
+  async function listarAlertas() {
+    listaDiv.textContent = 'Cargando...';
+
+    const { data, error } = await supabase
+      .from('filtros')
+      .select('*')
+      .eq('usuario_id', usuario_id)
+      .order('creado_en', { ascending: false });
+
+    if (error) {
+      listaDiv.innerHTML = `<p class="error">Error al cargar alertas: ${error.message}</p>`;
+      return;
+    }
+
+    if (!data.length) {
+      listaDiv.textContent = 'No hay alertas creadas.';
+      return;
+    }
+
+    listaDiv.innerHTML = '';
+    data.forEach(filtro => {
+      const div = document.createElement('div');
+      div.className = 'alertaItem';
+      div.textContent = `Nombre: ${filtro.nombre} | Palabra: ${filtro.palabra_clave} | Precio máximo: €${filtro.precio_maximo.toFixed(2)} | Solo tienda: ${filtro.tienda ? 'Sí' : 'No'} | Perfil top: ${filtro.perfil_top ? 'Sí' : 'No'}`;
+      listaDiv.appendChild(div);
+    });
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    mensajeDiv.textContent = '';
+    mensajeDiv.className = '';
 
     const palabra_clave = document.getElementById('palabraClave').value.trim();
     const precio_maximo = parseFloat(document.getElementById('precioMaximo').value);
@@ -50,16 +93,17 @@
 
     if (!palabra_clave) {
       mensajeDiv.textContent = 'Por favor, introduce una palabra clave.';
+      mensajeDiv.className = 'error';
       return;
     }
 
     if (isNaN(precio_maximo) || precio_maximo < 0) {
       mensajeDiv.textContent = 'Introduce un precio máximo válido.';
+      mensajeDiv.className = 'error';
       return;
     }
 
-    // Aquí pondríamos el id del usuario, para demo ponemos uno fijo
-    const usuario_id = '00000000-0000-0000-0000-000000000000';
+    mensajeDiv.textContent = 'Creando alerta...';
 
     const { data, error } = await supabase
       .from('filtros')
@@ -74,11 +118,20 @@
 
     if (error) {
       mensajeDiv.textContent = 'Error al crear la alerta: ' + error.message;
-    } else {
+      mensajeDiv.className = 'error';
+    } else if (data && data.length > 0) {
       mensajeDiv.textContent = 'Alerta creada con éxito!';
+      mensajeDiv.className = 'success';
       form.reset();
+      listarAlertas();
+    } else {
+      mensajeDiv.textContent = 'Error desconocido al crear la alerta.';
+      mensajeDiv.className = 'error';
     }
   });
+
+  // Carga la lista al iniciar
+  listarAlertas();
 </script>
 
 </body>
